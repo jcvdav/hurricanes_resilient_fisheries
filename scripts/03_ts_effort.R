@@ -12,9 +12,27 @@
 ################################################################################
 
 ## SET UP ######################################################################
+################################################################################
+# title: Time series of fishing effort relative to hurricane exposure
+# author: Juan Carlos Villaseñor-Derbez <jc_villasenor@miami.edu>
+# date: (update when running)
+#
+# Purpose:
+# Build a concise figure that compares fishing effort (Global Fishing Watch)
+# before, during and after hurricane exposure using NOAA/IBTrACS hurricane tracks
+# and a storm-wind exposure model. Output is saved to `results/img/ts_effort.png`.
+#
+# Notes:
+# - Uses `gfwr` to download daily fishing-raster tiles for the Gulf of Mexico.
+# - Uses `stormwindmodel` to calculate grid-level wind exposure time series.
+# - Effort metrics are normalized by pixel area (km^2) before aggregation.
+################################################################################
 
 # Load packages ----------------------------------------------------------------
 library(here)
+## SET UP ######################################################################
+
+# Load packages ----------------------------------------------------------------
 library(gfwr)
 library(stormwindmodel)
 library(tidyverse)
@@ -23,6 +41,10 @@ library(terra)
 
 # Define user functions --------------------------------------------------------
 # Function to fix the length of timestamp strings from Hurricane data
+# Inputs:
+# - char: character vector of numeric components (month, day, hour, minute)
+# - desired_length: integer target width (e.g. 2 for '03')
+# Returns: character vector padded with leading zeroes to `desired_length`
 fix_length <- function(char, desired_length){
   current_length <- str_length(char)
   
@@ -37,12 +59,18 @@ fix_length <- function(char, desired_length){
   return(char)
 }
 
-# First, define a function that returns a time-series for each pixel
+# Compute time series of sustained wind speed for each grid cell
+# Inputs:
+# - track: a single hurricane track (data.frame or sf) for one storm
+# - grid: data.frame with grid coordinates and `gridid` used by stormwindmodel
+# Returns: tibble with columns `grid_id`, `lon`, `lat`, `date`, `vmax_sust`
 get_hurricane_exposure <- function(track, grid) {
-  # Calculate exposure
+  # Calculate exposure using stormwindmodel; this returns a matrix-like
+  # object with times as rownames and grid cells as columns.
   exposure <- stormwindmodel::calc_grid_winds(hurr_track = track,
                                               grid_df = grid)
-  # Extract the time series
+  # Convert the exposure object into a long tibble with one row per
+  # (time, grid cell) and keep only positive sustained wind values.
   ts <- exposure[["vmax_sust"]] |> 
     tibble::as_tibble(rownames = "time") |> 
     tidyr::pivot_longer(cols = -time, 
@@ -56,56 +84,56 @@ get_hurricane_exposure <- function(track, grid) {
                      .groups = "drop") |> 
     dplyr::select(grid_id, lon = glon, lat = glat, date, vmax_sust) |> 
     dplyr::filter(vmax_sust > 0)
-  
-  # Save the data
+
+  # Return the time series tibble
   return(x = ts)
 }
 
-# Load data --------------------------------------------------------------------
+# Load spatial mask / study region --------------------------------------------
+# `World_Seas_IHO_v3` shapefile is stored locally in Box; we simplify the
+# polygon to speed spatial operations. `GoM` is an `sf` polygon for the Gulf
+# of Mexico used to filter tracks and region-based downloads.
 GoM <- read_sf("/Users/jcvd/Library/CloudStorage/Box-Box/01_project_data/central/World_Seas_IHO_v3") |> 
   filter(NAME == "Gulf of Mexico") |> 
   st_simplify(dTolerance = 10000)
 
-# Hurricanes
+# Hurricanes: read IBTrACS (NOAA) CSV and keep full column names by reading
+# a header row separately. This dataset contains best-track positions and wind
+# metrics for all storms in the North Atlantic.
 col_names <- names(read_csv("https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.NA.list.v04r01.csv", n_max = 0))
 hur <- read_csv("https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.NA.list.v04r01.csv",
                 col_names = col_names,
                 skip = 2)
 
 ## PROCESSING ##################################################################
+## Helper: download daily raster tiles for a single year ----------------------
+## This wraps `gfwr::get_raster()` to fetch Global Fishing Watch daily rasters
+## for the Gulf of Mexico, then performs light renaming and creates a
+## `grid_id` identifier used to match pixels to hurricane exposure.
 my_get_raster <- function(yr) {
   effort <- get_raster(spatial_resolution = "LOW",
-                     temporal_resolution = "DAILY",
-                     region = GoM,
-                     region_source = "USER_SHAPEFILE",
-                     start_date = paste0(yr, "-06-01"),
-                     end_date = paste0(yr, "-12-01"),
-                     filter_by = "flag = 'USA'") |> 
+      temporal_resolution = "DAILY",
+      region = GoM,
+      region_source = "USER_SHAPEFILE",
+      start_date = paste0(yr, "-06-01"),
+      end_date = paste0(yr, "-12-01"),
+      filter_by = "flag = 'USA'") |> 
     rename(lat = Lat,
-           lon = Lon,
-           date = `Time Range`,
-           effort_n_vessels = `Vessel IDs`,
-           effort_hours = `Apparent Fishing Hours`) |> 
+      lon = Lon,
+      date = `Time Range`,
+      effort_n_vessels = `Vessel IDs`,
+      effort_hours = `Apparent Fishing Hours`) |> 
+    # shift pixel centers slightly and build a joinable id
     mutate(lat = lat + 0.05,
-           lon = lon + 0.05,
-           grid_id = paste(lon, lat))
-  
+      lon = lon + 0.05,
+      grid_id = paste(lon, lat))
+
   return(effort)
 }
 
+## Download effort rasters for each year in the analysis window
 rast <- map_dfr(2015:2020,
                 my_get_raster)
-
-
-
-## VISUALIZE ###################################################################
-
-# X ----------------------------------------------------------------------------
-
-
-## EXPORT ######################################################################
-
-# X ----------------------------------------------------------------------------
 
 # PROCESSING ###################################################################
 
@@ -137,8 +165,9 @@ hurricanes <- hur |>
                        fix_length(hour(date), desired_length = 2),
                        fix_length(minute(date), desired_length = 2)))
 
-# Calculate exposure -----------------------------------------------------------
-
+## Calculate hurricane exposure for each ocean pixel -------------------------
+## Build a unique grid of pixel centers used in the raster download and then
+## convert to a simple data.frame matching the `stormwindmodel` grid format.
 ocean_grid <- rast |> 
   select(glon = lon, glat = lat) |> 
   distinct() |> 
@@ -146,6 +175,8 @@ ocean_grid <- rast |>
          glandsea = F) |> 
   as.data.frame()
 
+## Estimate pixel area (km^2) from a raster of cell sizes. This area is used
+## to normalize vessel counts / hours to per-km2 units.
 ocean_grid_rast <- rast(ocean_grid |>
                           select(1:2),
                         crs = "EPSG:4326") |> 
@@ -155,9 +186,10 @@ ocean_grid_rast <- rast(ocean_grid |>
   mutate(area = area / 1e6) |> 
   as_tibble()
 
-
+## Use parallel workers (mirai) to speed up exposure calculations across storms
 mirai::daemons(20)
-# For ocean pixels
+## For each hurricane (split by ID) compute grid-level sustained-wind time
+## series using `get_hurricane_exposure()` and combine into one data frame.
 exposure <- hurricanes %>%
   split(.$ID) |> 
   map_dfr(in_parallel(\(x) get_hurricane_exposure(x,
@@ -200,29 +232,40 @@ panel <- exposure |>
   mutate(effort_n_vessels_km2 = effort_n_vessels / area,
          effort_hours_km2 = effort_hours / area)
 
+## Aggregate statistics for plotting -----------------------------------------
+## Compute the mean and standard error of vessel counts (per km^2) by
+## the three analysis periods ('pre', 'during', 'post'). These values are
+## used to draw a reference horizontal line (pre-storm mean) in the plot.
 period <- group_by(panel,
-                   period) |> 
+         period) |> 
   summarize(mean = mean(effort_n_vessels_km2,
-                        na.rm = T),
-            se = sd(effort_n_vessels_km2, na.rm = T) / sqrt(n()))
+         na.rm = T),
+       se = sd(effort_n_vessels_km2, na.rm = T) / sqrt(n()))
 
+## Plotting: visualize mean vessel activity relative to storm exposure
+## - x: days relative to first/last storm-force wind day
+## - y: vessel count per km^2
+## - vertical dashed line marks the storm period boundary (rel_time == 0)
+## - horizontal line shows the pre-storm mean for reference
 p <- ggplot(panel,
-       aes(x = rel_time,
-           y = effort_n_vessels_km2)) + 
+  aes(x = rel_time,
+      y = effort_n_vessels_km2)) + 
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = c(period$mean[period$period == "pre"])) +
   stat_summary(geom = "pointrange", fun.data = mean_se, aes(color = period)) +
   theme_minimal() +
   labs(x = "Days relative to first / last day with storm-force winds (> 18 m/s)",
-       y = quote("Vessel activity (# vessels/"~km^2~")"),
-       color = "Period") +
+  y = quote("Vessel activity (# vessels/"~km^2~")"),
+  color = "Period") +
   theme(legend.position = "inside",
-        legend.position.inside = c(0, 1),
-        legend.justification.inside = c(0, 1)) +
+   legend.position.inside = c(0, 1),
+   legend.justification.inside = c(0, 1)) +
   scale_x_continuous(breaks = seq(-56, 45, by = 7))
 
 
+## Export: save the figure to the results directory. File name chosen to
+## match other project outputs and be easy to reference in reports.
 ggsave(plot = p,
-       filename = "results/img/ts_effort.png",
-       width = 6,
-       height = 3)
+  filename = "results/img/ts_effort.png",
+  width = 6,
+  height = 3)
