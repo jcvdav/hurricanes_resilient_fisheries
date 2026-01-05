@@ -247,25 +247,59 @@ period <- group_by(panel,
 ## - y: vessel count per km^2
 ## - vertical dashed line marks the storm period boundary (rel_time == 0)
 ## - horizontal line shows the pre-storm mean for reference
+
+# Professional color palettes (Economist/NYT style)
+period_palette <- c(
+  "pre" = "#2C5F7D",      # Muted blue-gray for pre-storm
+  "during" = "#C0392B",   # Deep red for during storm
+  "post" = "#E67E22"      # Warm orange for post-storm
+)
+
 p <- ggplot(panel,
   aes(x = rel_time,
       y = effort_n_vessels_km2)) + 
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  geom_hline(yintercept = c(period$mean[period$period == "pre"])) +
-  stat_summary(geom = "pointrange", fun.data = mean_se, aes(color = period)) +
-  theme_minimal() +
+  geom_vline(xintercept = 0, 
+             linetype = "dashed", 
+             color = "#4A4A4A",
+             linewidth = 0.5) +
+  geom_hline(yintercept = c(period$mean[period$period == "pre"]),
+             color = "#4A4A4A",
+             linewidth = 1,
+             linetype = "dotted") +
+  stat_summary(geom = "pointrange", 
+               fun.data = mean_se, 
+               aes(color = period),
+               linewidth = 0.8,
+               size = 0.6) +
+  theme_minimal(base_family = "serif") +
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    axis.line = element_line(color = "#4A4A4A", linewidth = 0.5),
+    axis.ticks = element_line(color = "#4A4A4A", linewidth = 0.5),
+    axis.text = element_text(size = 9, color = "#4A4A4A"),
+    axis.title = element_text(size = 10, color = "#2C2C2C", face = "bold"),
+    legend.position = "inside",
+    legend.position.inside = c(0.05, 0.95),
+    legend.justification.inside = c(0, 1),
+    legend.title = element_text(size = 10, face = "bold", color = "#2C2C2C"),
+    legend.text = element_text(size = 9, color = "#4A4A4A"),
+    legend.background = element_rect(fill = "white", color = NA),
+    plot.margin = margin(15, 15, 15, 15),
+    text = element_text(color = "#2C2C2C"),
+    panel.grid.major = element_line(color = "#E5E5E5", linewidth = 0.3),
+    panel.grid.minor = element_blank()
+  ) +
   labs(x = "Days relative to first / last day with storm-force winds (> 18 m/s)",
-  y = quote("Vessel activity (# vessels/"~km^2~")"),
-  color = "Period") +
-  theme(legend.position = "inside",
-   legend.position.inside = c(0, 1),
-   legend.justification.inside = c(0, 1)) +
-  scale_x_continuous(breaks = seq(-56, 45, by = 7))
+       y = quote("Vessel activity (# vessels/"~km^2~")"),
+       color = "Period") +
+  scale_color_manual(values = period_palette) +
+  scale_x_continuous(breaks = seq(-60, 45, by = 15))
 
 
 ## Export: save the figure to the results directory. File name chosen to
 ## match other project outputs and be easy to reference in reports.
 ggsave(plot = p,
-  filename = "results/img/ts_effort.png",
-  width = 6,
-  height = 3)
+       filename = "results/img/ts_effort.png",
+       width = 8,
+       height = 4)
