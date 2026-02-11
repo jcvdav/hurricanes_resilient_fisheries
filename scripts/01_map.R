@@ -22,20 +22,25 @@ pacman::p_load(
 
 
 ## Load data -------------------------------------------------------------------
+### Hurricane data
+#### Column names
 col_names <- names(read_csv("https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.NA.list.v04r01.csv", n_max = 0))
+#### Data
 hur <- read_csv("https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.NA.list.v04r01.csv",
                 col_names = col_names,
                 skip = 2) |> 
   janitor::clean_names()
 
+# Gulf states
 gulf_states <- ne_states(country = c("United States of America")) |> 
   filter(name %in% c("Florida", "Alabama", "Mississippi", "Louisiana", "Texas"))
 
-sf_use_s2(F)
-mex_us <- ne_countries(scale = "large") |> 
-  st_crop(st_buffer(gulf_states, 2.5))
-sf_use_s2(T)
+# sf_use_s2(F)
+# mex_us <- ne_countries(scale = "large") |>
+#   st_crop(st_buffer(gulf_states, 2.5))
+# sf_use_s2(T)
 
+# Build stats table for the Gulf. These come from the spreadhseet put together by Amelia.
 gulf_stats <- tribble(
   ~ "state", ~"employment", ~"income", ~"value_added", ~"production",
   "Alabama",	6971,	139904,	195934,	13872,
@@ -53,14 +58,15 @@ gulf_stats <- tribble(
 
 # PROCESSING ###################################################################
 
-## Some step -------------------------------------------------------------------
+## Identify relevant hurricanes ------------------------------------------------
 gulf_hurs <- hur |> 
-  filter(!name == "UNNAMED",
-         season >= 2000) |> 
+  filter(!name == "UNNAMED", # Retain only named storms
+         season >= 2000) |>  # Retain only data since 2000
   select(name, year = season, date = iso_time,
          lon, lat,
          wind = usa_wind, sshs = usa_sshs)
 
+# Make a spatial version of hurricanes
 hur_sf <- gulf_hurs |> 
   st_as_sf(coords = c("lon", "lat"),
            crs = "EPSG:4326") |> 
@@ -68,14 +74,10 @@ hur_sf <- gulf_hurs |>
   summarize(max_sshs = as.character(max(sshs)),
             .groups = "drop",
             do_union = F) |> 
-  mutate(max_sshs_bin = case_when(max_sshs == "0" ~ "TS",
-                                  max_sshs <= 3 ~ "Minor hurricane",
-                                  max_sshs >= 4 ~ "Major hurricane")) |> 
-  filter(max_sshs >= 0) |> 
   st_cast("LINESTRING") |> 
-  st_filter(gulf_states) |> 
-  st_crop(st_buffer(gulf_states, 500000))
+  st_filter(gulf_states)
 
+# Perform a spatial join
 gulf_states_affected <- st_join(gulf_states |>
                                   rename(state_name = name), 
                                 hur_sf) |> 
@@ -86,78 +88,40 @@ gulf_states_affected <- st_join(gulf_states |>
 
 
 # VISUALIZE ####################################################################
-# Professional color palettes (Economist/NYT style)
-# Hurricane categories - refined, publication-quality colors
-binned_hurricane_palette <- c(
-  "#2C5F7D",  # Tropical Storm - muted blue-gray
-  "#E67E22",  # Minor hurricane - warm orange
-  "#C0392B"   # Major hurricane - deep red
-)
-
 
 ## Another step ----------------------------------------------------------------
 p1 <- ggplot() + 
-  geom_sf(data = mex_us,
-          color = "#D3D3D3",
-          fill = "#F5F5F5",
-          linewidth = 0.3) +
   geom_sf(data = gulf_states_affected,
           mapping = aes(fill = n),
           color = "#4A4A4A",
           linewidth = 0.5) +
-  # geom_sf(data = hur_sf,
-  #         mapping = aes(color = max_sshs_bin),
-  #         alpha = 0.7,
-  #         linewidth = 0.8) +
   geom_label(data = gulf_states_affected, 
-             x = c(-100, -91, -92, -85, -82),
-             y = c(32.25, 27, 36.75, 36.75, 32.25),
+             x = c(-107.5, -94.5, -93, -85, -87),
+             y = c(34, 27, 35, 34, 27),
              mapping = aes(label = text),
+             hjust = "left",
              color = "black",
              fill = "white",
-             label.padding = unit(0.5, "lines"),
-             label.size = NA,
+             alpha = 0.5,
              label.r = unit(0.1, "lines"),
-             size = 3.2,
-             family = "serif",
-             nudge_x = c(0, -3, 0, 0, 0),
-             nudge_y = c(0, 5, 0, 0, 0)) +
-  geom_text(aes(x = -100, y = 38, label = "Unietd States"), size = 5) +
-  geom_text(aes(x = -103, y = 25, label = "Mexico"), size = 5) +
-  geom_text(aes(x = -91, y = 24, label = "Gulf of Mexico"), size = 5) +
+             size = 3,
+             family = "serif") +
   theme_void(base_family = "serif") +
-  theme(
-    plot.background = element_rect(fill = "white", color = NA),
-    panel.background = element_rect(fill = "white", color = NA),
-    legend.position = "bottom",
-    legend.box = "horizontal",
-    legend.margin = margin(t = 15, b = 10),
-    legend.title = element_text(size = 10, face = "bold", color = "#2C2C2C"),
-    legend.text = element_text(size = 9, color = "#4A4A4A"),
-    plot.margin = margin(10, 10, 10, 10),
-    text = element_text(color = "#2C2C2C")
-  ) +
-  scale_color_manual(
-    values = binned_hurricane_palette,
-    name = "Hurricane Category",
-    guide = guide_legend(
-      override.aes = list(linewidth = 1.2, alpha = 0.8),
-      order = 1
-    )
-  ) +
+  theme(plot.background = element_rect(fill = "white", color = NA),
+        panel.background = element_rect(fill = "white", color = "black"),
+        legend.position = "inside",
+        legend.position.inside = c(0.15, 0.11),
+        legend.direction = "horizontal",
+        legend.background = element_rect(color = "black"),
+        legend.margin = margin(t = 15, b = 10, l = 10, r = 10),
+        legend.title = element_text(size = 10, face = "bold", color = "#2C2C2C"),
+        legend.text = element_text(size = 9, color = "#4A4A4A"),
+        plot.margin = margin(10, 10, 10, 10),
+        text = element_text(color = "#2C2C2C")) +
   scale_fill_gradient(low = "#E8F4F8",
-                      high = "#8B3A3A",limits = c(0, 50),
-                      name = "Number of\nHurricanes",
-                      guide = guide_colorbar(
-                        barwidth = 12,
-                        barheight = 0.6,
-                        title.position = "top",
-                        title.hjust = 0.5,
-                        order = 2
-                      )
-  ) +
-  scale_x_continuous(expand = c(0, 0), limits = c(-109.1, -77.55)) +
-  scale_y_continuous(expand = c(0, 0), limits = c(22.1, 39)) +
+                      high = "#8B3A3A",
+                      limits = c(0, 50),
+                      name = "Number of\nHurricanes") +
   labs(x = NULL,
        y = NULL)
 
@@ -168,5 +132,5 @@ p1
 ggsave(plot = p1,
        filename = "results/img/map.png",
        width = 8,
-       height = 6.133)
+       height = 4.5)
 

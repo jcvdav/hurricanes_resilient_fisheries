@@ -30,14 +30,12 @@
 
 # Load packages ----------------------------------------------------------------
 library(here)
-## SET UP ######################################################################
-
-# Load packages ----------------------------------------------------------------
 library(gfwr)
 library(stormwindmodel)
 library(tidyverse)
 library(sf)
 library(terra)
+library(EventHorizon)
 
 # Define user functions --------------------------------------------------------
 # Function to fix the length of timestamp strings from Hurricane data
@@ -112,27 +110,27 @@ hur <- read_csv("https://www.ncei.noaa.gov/data/international-best-track-archive
 ## `grid_id` identifier used to match pixels to hurricane exposure.
 my_get_raster <- function(yr) {
   effort <- get_raster(spatial_resolution = "LOW",
-      temporal_resolution = "DAILY",
-      region = GoM,
-      region_source = "USER_SHAPEFILE",
-      start_date = paste0(yr, "-06-01"),
-      end_date = paste0(yr, "-12-01"),
-      filter_by = "flag = 'USA'") |> 
+                       temporal_resolution = "DAILY",
+                       region = GoM,
+                       region_source = "USER_SHAPEFILE",
+                       start_date = paste0(yr, "-06-01"),
+                       end_date = paste0(yr, "-12-01"),
+                       filter_by = "flag = 'USA'") |> 
     rename(lat = Lat,
-      lon = Lon,
-      date = `Time Range`,
-      effort_n_vessels = `Vessel IDs`,
-      effort_hours = `Apparent Fishing Hours`) |> 
+           lon = Lon,
+           date = `Time Range`,
+           effort_n_vessels = `Vessel IDs`,
+           effort_hours = `Apparent Fishing Hours`) |> 
     # shift pixel centers slightly and build a joinable id
     mutate(lat = lat + 0.05,
-      lon = lon + 0.05,
-      grid_id = paste(lon, lat))
-
+           lon = lon + 0.05,
+           grid_id = paste(lon, lat))
+  
   return(effort)
 }
 
 ## Download effort rasters for each year in the analysis window
-rast <- map_dfr(2015:2020,
+rast <- map_dfr(2015:2025,
                 my_get_raster)
 
 # PROCESSING ###################################################################
@@ -183,8 +181,8 @@ ocean_grid_rast <- rast(ocean_grid |>
   cellSize() |> 
   as.data.frame(xy = T) |> 
   rename(lon = x, lat = y) |> 
-  mutate(area = area / 1e6) |> 
-  as_tibble()
+  mutate(area = area / 1e6,
+         grid_id = paste(lon, lat))
 
 ## Use parallel workers (mirai) to speed up exposure calculations across storms
 mirai::daemons(20)
@@ -198,49 +196,49 @@ exposure <- hurricanes %>%
                       grid = ocean_grid),
           .id = "hurricane")
 
-sshs_hurricanes <- hurricanes |> 
-  group_by(ID) |> 
-  summarize(sshs = max(sshs))
 
-panel <- exposure |> 
-  filter(vmax_sust > 18) |>
-  group_by(hurricane, grid_id, lon, lat) |>
-  summarize(first_day = min(date),
-            last_day = max(date),
-            .groups = "drop") |>
-  mutate(start_pre = first_day - 60,
-         end_post = last_day + 45) |>
-  mutate(date = map2(start_pre, end_post, ~ seq(.x, .y, by = "day"))) |>
-  unnest(date) |>
-  mutate(period = case_when(between(date, first_day, last_day) ~ "during",
-                            date < first_day ~ "pre",
-                            date > last_day ~ "post"),
+# Some pixels are exposed to wind from two storms at the same time, so we pick the largest
+exposure_single <- exposure |> 
+  group_by(grid_id, lat, lon, date) |> 
+  summarize(vmax_sust = max(vmax_sust),
+            .groups = "drop")
+
+panel <- expand_grid(date = seq(min(rast$date), max(rast$date)),
+                     rast |> select(lat, lon, grid_id) |> distinct()) |> 
+  left_join(rast, by = join_by(lat == lat, lon == lon, date == date, grid_id == grid_id)) |> 
+  left_join(exposure_single, by = join_by(lat == lat, lon == lon, date == date, grid_id == grid_id)) |> 
+  replace_na(replace = list(vmax_sust = 0, effort_n_vessels = 0, effort_hours = 0)) |> 
+  mutate(lat = round(lat, 2),
+         lon = round(lon, 2)) |> 
+  left_join(ocean_grid_rast, by = join_by(grid_id))
+
+# Build event hoirzon panel
+
+window <- 45
+
+eh_panel <- panel |> 
+  mutate(treatment = 1 * (vmax_sust >= 18),
+         treatment_id = treatment_ids(id = grid_id, time = date, treatment = treatment, window = window),
+         relative_time = calculate_relative_time(id = grid_id, treatment_id = treatment_id, window = window),
+         treatment_id = propagate_treatment_id(id = grid_id, time = date, treatment_id = treatment_id, window = window)) |> 
+  drop_na(relative_time) |> # Remove observations beyond the boundary of ± window
+  mutate(period = case_when(relative_time == 0 ~ "during",
+                            relative_time < 0 ~ "pre",
+                            relative_time > 0 ~ "post"),
          period = fct_relevel(period, c("pre", "during", "post")),
-         rel_time_left = date - first_day,
-         rel_time_right = date - last_day,
-         rel_time = case_when(period == "pre" ~ as.numeric(rel_time_left),
-                              period == "during" ~ 0,
-                              period == "post" ~ as.numeric(rel_time_right))) |>
-  left_join(exposure, by = join_by(hurricane, grid_id, lon, lat, date)) |>
-  left_join(rast |> select(-c(lat, lon)), by = join_by(grid_id, date)) |>
-  left_join(ocean_grid_rast, by = join_by(lon, lat)) |> 
-  left_join(sshs_hurricanes, by = join_by(hurricane == ID)) |> 
-  select(hurricane, grid_id, lon, lat, area, date, rel_time, period, sshs, vmax_sust, effort_n_vessels, effort_hours) |> 
-  replace_na(list(v_max_sust = 0,
-                  effort_n_vessels = 0,
-                  effort_hours = 0)) |> 
-  mutate(effort_n_vessels_km2 = effort_n_vessels / area,
+         effort_n_vessels_km2 = effort_n_vessels / area,
          effort_hours_km2 = effort_hours / area)
+
 
 ## Aggregate statistics for plotting -----------------------------------------
 ## Compute the mean and standard error of vessel counts (per km^2) by
 ## the three analysis periods ('pre', 'during', 'post'). These values are
 ## used to draw a reference horizontal line (pre-storm mean) in the plot.
-period <- group_by(panel,
-         period) |> 
+period <- group_by(eh_panel,
+                   period) |> 
   summarize(mean = mean(effort_n_vessels_km2,
-         na.rm = T),
-       se = sd(effort_n_vessels_km2, na.rm = T) / sqrt(n()))
+                        na.rm = T),
+            se = sd(effort_n_vessels_km2, na.rm = T) / sqrt(n()))
 
 ## Plotting: visualize mean vessel activity relative to storm exposure
 ## - x: days relative to first/last storm-force wind day
@@ -255,47 +253,70 @@ period_palette <- c(
   "post" = "#E67E22"      # Warm orange for post-storm
 )
 
-p <- ggplot(panel,
-  aes(x = rel_time,
-      y = effort_n_vessels_km2)) + 
+pre_mean <- period$mean[period$period == "pre"]
+
+gap <- eh_panel |> 
+  group_by(relative_time) |> 
+  summarize(effort_n_vessels_km2 = mean(effort_n_vessels_km2)) |> 
+  filter(between(relative_time, -12, 37)) |> 
+  mutate(period = case_when(relative_time <= -2 ~ "pre",
+                            relative_time >= 3 ~ "post"),
+  period = fct_relevel(period, c("pre", "post"))) |> 
+  drop_na(period)
+         
+p <- ggplot(data = eh_panel,
+            mapping = aes(x = relative_time,
+                          y = effort_n_vessels_km2)) + 
+  annotate(geom = "text",
+           x = c(-15, 5, 30),
+           y = c(1.1e-3, 1.4e-3, 1.3e-3),
+           label = c("Preemptive", "Shock", "Compensatory"),
+           color = c("#2C5F7D", "black", "#E67E22"),
+           size = 5,
+           family = "serif") +
+  geom_ribbon(data = gap,
+              aes(ymin = pre_mean,
+                  ymax = effort_n_vessels_km2,
+                  fill = period),
+              alpha = 0.75) +
   geom_vline(xintercept = 0, 
              linetype = "dashed", 
-             color = "#4A4A4A",
-             linewidth = 0.5) +
-  geom_hline(yintercept = c(period$mean[period$period == "pre"]),
+             color = "black",
+             linewidth = 1) +
+  geom_hline(yintercept = pre_mean,
              color = "#4A4A4A",
              linewidth = 1,
              linetype = "dotted") +
+  stat_summary(geom = "line", 
+               fun = mean, 
+               color = "black",
+               linewidth = 0.5) +
   stat_summary(geom = "pointrange", 
                fun.data = mean_se, 
-               aes(color = period),
+               aes(fill = period),
+               color = "black",
                linewidth = 0.8,
+               shape = 21,
                size = 0.6) +
-  theme_minimal(base_family = "serif") +
-  theme(
-    plot.background = element_rect(fill = "white", color = NA),
-    panel.background = element_rect(fill = "white", color = NA),
-    axis.line = element_line(color = "#4A4A4A", linewidth = 0.5),
-    axis.ticks = element_line(color = "#4A4A4A", linewidth = 0.5),
-    axis.text = element_text(size = 9, color = "#4A4A4A"),
-    axis.title = element_text(size = 10, color = "#2C2C2C", face = "bold"),
-    legend.position = "inside",
-    legend.position.inside = c(0.05, 0.95),
-    legend.justification.inside = c(0, 1),
-    legend.title = element_text(size = 10, face = "bold", color = "#2C2C2C"),
-    legend.text = element_text(size = 9, color = "#4A4A4A"),
-    legend.background = element_rect(fill = "white", color = NA),
-    plot.margin = margin(15, 15, 15, 15),
-    text = element_text(color = "#2C2C2C"),
-    panel.grid.major = element_line(color = "#E5E5E5", linewidth = 0.3),
-    panel.grid.minor = element_blank()
-  ) +
-  labs(x = "Days relative to first / last day with storm-force winds (> 18 m/s)",
+  theme_linedraw(base_family = "serif") +
+  theme(plot.background = element_rect(fill = "white", color = NA),
+        panel.background = element_rect(fill = "white", color = "black"),
+        legend.position = "inside",
+        legend.position.inside = c(0.01, 0.99),
+        legend.justification.inside = c(0, 1),
+        legend.background = element_rect(color = "black"),
+        legend.title = element_text(size = 10, face = "bold", color = "#2C2C2C"),
+        legend.text = element_text(size = 9, color = "#4A4A4A"),
+        plot.margin = margin(10, 10, 10, 10),
+        text = element_text(color = "#2C2C2C")) +
+  labs(x = "Days relative to first / last day with storm-force winds (>= 18 m/s)",
        y = quote("Vessel activity (# vessels/"~km^2~")"),
+       fill = "Period",
        color = "Period") +
-  scale_color_manual(values = period_palette) +
-  scale_x_continuous(breaks = seq(-60, 45, by = 15))
+  scale_color_manual(values = period_palette, aesthetics = c("color", "fill")) +
+  scale_x_continuous(breaks = seq(-45, 45, by = 15))
 
+p
 
 ## Export: save the figure to the results directory. File name chosen to
 ## match other project outputs and be easy to reference in reports.
@@ -303,3 +324,16 @@ ggsave(plot = p,
        filename = "results/img/ts_effort.png",
        width = 8,
        height = 4)
+
+
+
+
+
+
+
+
+
+
+
+
+
