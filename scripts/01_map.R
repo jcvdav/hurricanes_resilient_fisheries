@@ -93,7 +93,7 @@ gulf_states_affected <- st_join(gulf_states |>
 p1 <- ggplot() + 
   geom_sf(data = gulf_states_affected,
           mapping = aes(fill = n),
-          color = "#4A4A4A",
+          color = "black",
           linewidth = 0.5) +
   geom_label(data = gulf_states_affected, 
              x = c(-107.5, -94.5, -93, -85, -87),
@@ -106,22 +106,17 @@ p1 <- ggplot() +
              label.r = unit(0.1, "lines"),
              size = 3,
              family = "serif") +
-  theme_void(base_family = "serif") +
-  theme(plot.background = element_rect(fill = "white", color = NA),
-        panel.background = element_rect(fill = "white", color = "black"),
-        legend.position = "inside",
-        legend.position.inside = c(0.15, 0.11),
-        legend.direction = "horizontal",
-        legend.background = element_rect(color = "black"),
-        legend.margin = margin(t = 15, b = 10, l = 10, r = 10),
-        legend.title = element_text(size = 10, face = "bold", color = "#2C2C2C"),
-        legend.text = element_text(size = 9, color = "#4A4A4A"),
-        plot.margin = margin(10, 10, 10, 10),
-        text = element_text(color = "#2C2C2C")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.minor = element_blank(),
+    legend.position = "inside",
+    axis.text = element_blank(),
+    legend.position.inside = c(0.15, 0.1),
+    legend.direction = "horizontal") +
   scale_fill_gradient(low = "#E8F4F8",
                       high = "#8B3A3A",
                       limits = c(0, 50),
-                      name = "Number of\nHurricanes") +
+                      name = "Number of\ntropical cyclones") +
   labs(x = NULL,
        y = NULL)
 
