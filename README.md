@@ -10,11 +10,11 @@ This repository produces two figures characterizing hurricane exposure across co
 
 ### Figure 1 — Annual hurricane-season county-days exposed (`results/img/annual_hurricane_season_county_days_exposed.png`)
 
-Bars show the annual sum of county-days exposed to storm-force winds (sustained winds >= 17.5 m/s) during hurricane season (Jun-Nov), across the analysis sample of coastal counties. The line is a 3-year running average.
+Bars show the annual sum of county-days exposed to storm-force winds (sustained winds >= 17.5 m/s) during hurricane season (Jun-Nov), restricted to coastal counties in the five Gulf states (Texas, Louisiana, Mississippi, Alabama, Florida) — the same geographic universe as Figure 2. The line is a 3-year running average computed over consecutive calendar years (zero-filled for hurricane-free years).
 
 **Data sources:**
 - County-day sustained-wind series: NOAA HURDAT-based forecast reconstructions (`data/raw/hurricanes/2024_forecast_data.csv`)
-- Sample counties: `data/processed/sample_counties.csv` — the 276 FIPS in the analysis panel of Molina et al. (2024)
+- Sample counties: `data/processed/sample_counties.csv` — 276 FIPS from the analysis panel of Molina et al. (2024) spanning Gulf and South Atlantic states; the script filters to the 172 Gulf-state counties
 
 ### Figure 2 — Gulf Coast hurricane exposure map (`results/img/map.png`)
 

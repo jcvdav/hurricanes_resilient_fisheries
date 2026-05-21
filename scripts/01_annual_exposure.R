@@ -21,11 +21,15 @@ pacman::p_load(
 options(dplyr.summarise.inform = FALSE)
 
 ## Load data -------------------------------------------------------------------
-### Sample counties (analysis panel FIPS)
+### Gulf states (restrict the exposure tally to Gulf-of-Mexico counties)
+gulf_states <- c("Texas", "Louisiana", "Mississippi", "Alabama", "Florida")
+
+### Sample counties (analysis panel FIPS, filtered to Gulf states)
 sample_counties <- read_csv(
   here("data", "processed", "sample_counties.csv"),
   col_types = cols(fips = col_character())
-)
+) |>
+  filter(state %in% gulf_states)
 
 ### Hurricane forecast data (per hurricane / county / day sustained winds)
 forecast_data <- read_csv(
@@ -54,10 +58,10 @@ annual_exposure <- forecast_data |>
   # over consecutive years (not just over years that appear in the data).
   complete(year = full_seq(year, 1), fill = list(county_days_exposed = 0)) |>
   arrange(year) |>
-  mutate(rolling_avg_3y = sapply(
-    seq_along(county_days_exposed),
-    \(i) if (i < 3) NA_real_ else mean(county_days_exposed[(i - 2):i])
-  ))
+  mutate(rolling_avg_3y = zoo::rollmean(county_days_exposed,
+                                        k = 3,
+                                        fill = NA,
+                                        align = "right"))
 
 # VISUALIZE ####################################################################
 

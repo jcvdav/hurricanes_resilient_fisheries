@@ -1,277 +1,277 @@
-"fips"
-"01003"
-"01097"
-"01129"
-"12001"
-"12005"
-"12007"
-"12009"
-"12011"
-"12013"
-"12015"
-"12017"
-"12019"
-"12021"
-"12027"
-"12029"
-"12031"
-"12033"
-"12035"
-"12037"
-"12039"
-"12043"
-"12045"
-"12047"
-"12049"
-"12051"
-"12053"
-"12057"
-"12059"
-"12061"
-"12065"
-"12069"
-"12071"
-"12073"
-"12075"
-"12081"
-"12083"
-"12085"
-"12086"
-"12087"
-"12089"
-"12091"
-"12093"
-"12095"
-"12097"
-"12099"
-"12101"
-"12103"
-"12105"
-"12107"
-"12109"
-"12111"
-"12113"
-"12115"
-"12117"
-"12121"
-"12123"
-"12125"
-"12127"
-"12129"
-"12131"
-"12133"
-"13001"
-"13003"
-"13005"
-"13007"
-"13009"
-"13013"
-"13025"
-"13029"
-"13031"
-"13039"
-"13049"
-"13051"
-"13073"
-"13079"
-"13081"
-"13087"
-"13091"
-"13103"
-"13105"
-"13107"
-"13127"
-"13129"
-"13135"
-"13137"
-"13161"
-"13179"
-"13183"
-"13185"
-"13191"
-"13197"
-"13237"
-"13245"
-"13251"
-"13267"
-"13279"
-"13283"
-"13305"
-"13311"
-"22001"
-"22003"
-"22005"
-"22007"
-"22009"
-"22011"
-"22013"
-"22015"
-"22017"
-"22019"
-"22021"
-"22023"
-"22025"
-"22027"
-"22029"
-"22031"
-"22033"
-"22035"
-"22037"
-"22039"
-"22041"
-"22043"
-"22045"
-"22047"
-"22049"
-"22051"
-"22053"
-"22055"
-"22057"
-"22059"
-"22061"
-"22063"
-"22065"
-"22067"
-"22069"
-"22071"
-"22073"
-"22075"
-"22077"
-"22079"
-"22081"
-"22083"
-"22085"
-"22087"
-"22089"
-"22091"
-"22093"
-"22095"
-"22097"
-"22099"
-"22101"
-"22103"
-"22105"
-"22107"
-"22109"
-"22111"
-"22113"
-"22115"
-"22117"
-"22119"
-"22121"
-"22123"
-"22125"
-"22127"
-"28045"
-"28047"
-"28059"
-"37009"
-"37013"
-"37015"
-"37017"
-"37019"
-"37029"
-"37031"
-"37033"
-"37035"
-"37037"
-"37041"
-"37047"
-"37049"
-"37051"
-"37053"
-"37055"
-"37057"
-"37059"
-"37061"
-"37065"
-"37067"
-"37069"
-"37071"
-"37073"
-"37079"
-"37081"
-"37089"
-"37091"
-"37095"
-"37097"
-"37101"
-"37103"
-"37105"
-"37107"
-"37109"
-"37117"
-"37119"
-"37127"
-"37129"
-"37133"
-"37137"
-"37139"
-"37141"
-"37143"
-"37145"
-"37147"
-"37151"
-"37155"
-"37157"
-"37159"
-"37163"
-"37169"
-"37177"
-"37183"
-"37187"
-"37191"
-"37195"
-"45013"
-"45015"
-"45017"
-"45019"
-"45043"
-"45045"
-"45051"
-"45065"
-"45075"
-"48005"
-"48007"
-"48021"
-"48029"
-"48039"
-"48041"
-"48057"
-"48061"
-"48067"
-"48071"
-"48085"
-"48091"
-"48113"
-"48167"
-"48201"
-"48215"
-"48239"
-"48241"
-"48245"
-"48249"
-"48273"
-"48277"
-"48291"
-"48303"
-"48321"
-"48339"
-"48347"
-"48355"
-"48361"
-"48373"
-"48391"
-"48403"
-"48407"
-"48409"
-"48419"
-"48427"
-"48453"
-"48455"
-"48459"
-"48469"
-"48471"
-"48481"
-"48489"
-"48493"
+fips,state
+01003,Alabama
+01097,Alabama
+01129,Alabama
+12001,Florida
+12005,Florida
+12007,Florida
+12009,Florida
+12011,Florida
+12013,Florida
+12015,Florida
+12017,Florida
+12019,Florida
+12021,Florida
+12027,Florida
+12029,Florida
+12031,Florida
+12033,Florida
+12035,Florida
+12037,Florida
+12039,Florida
+12043,Florida
+12045,Florida
+12047,Florida
+12049,Florida
+12051,Florida
+12053,Florida
+12057,Florida
+12059,Florida
+12061,Florida
+12065,Florida
+12069,Florida
+12071,Florida
+12073,Florida
+12075,Florida
+12081,Florida
+12083,Florida
+12085,Florida
+12086,Florida
+12087,Florida
+12089,Florida
+12091,Florida
+12093,Florida
+12095,Florida
+12097,Florida
+12099,Florida
+12101,Florida
+12103,Florida
+12105,Florida
+12107,Florida
+12109,Florida
+12111,Florida
+12113,Florida
+12115,Florida
+12117,Florida
+12121,Florida
+12123,Florida
+12125,Florida
+12127,Florida
+12129,Florida
+12131,Florida
+12133,Florida
+13001,Georgia
+13003,Georgia
+13005,Georgia
+13007,Georgia
+13009,Georgia
+13013,Georgia
+13025,Georgia
+13029,Georgia
+13031,Georgia
+13039,Georgia
+13049,Georgia
+13051,Georgia
+13073,Georgia
+13079,Georgia
+13081,Georgia
+13087,Georgia
+13091,Georgia
+13103,Georgia
+13105,Georgia
+13107,Georgia
+13127,Georgia
+13129,Georgia
+13135,Georgia
+13137,Georgia
+13161,Georgia
+13179,Georgia
+13183,Georgia
+13185,Georgia
+13191,Georgia
+13197,Georgia
+13237,Georgia
+13245,Georgia
+13251,Georgia
+13267,Georgia
+13279,Georgia
+13283,Georgia
+13305,Georgia
+13311,Georgia
+22001,Louisiana
+22003,Louisiana
+22005,Louisiana
+22007,Louisiana
+22009,Louisiana
+22011,Louisiana
+22013,Louisiana
+22015,Louisiana
+22017,Louisiana
+22019,Louisiana
+22021,Louisiana
+22023,Louisiana
+22025,Louisiana
+22027,Louisiana
+22029,Louisiana
+22031,Louisiana
+22033,Louisiana
+22035,Louisiana
+22037,Louisiana
+22039,Louisiana
+22041,Louisiana
+22043,Louisiana
+22045,Louisiana
+22047,Louisiana
+22049,Louisiana
+22051,Louisiana
+22053,Louisiana
+22055,Louisiana
+22057,Louisiana
+22059,Louisiana
+22061,Louisiana
+22063,Louisiana
+22065,Louisiana
+22067,Louisiana
+22069,Louisiana
+22071,Louisiana
+22073,Louisiana
+22075,Louisiana
+22077,Louisiana
+22079,Louisiana
+22081,Louisiana
+22083,Louisiana
+22085,Louisiana
+22087,Louisiana
+22089,Louisiana
+22091,Louisiana
+22093,Louisiana
+22095,Louisiana
+22097,Louisiana
+22099,Louisiana
+22101,Louisiana
+22103,Louisiana
+22105,Louisiana
+22107,Louisiana
+22109,Louisiana
+22111,Louisiana
+22113,Louisiana
+22115,Louisiana
+22117,Louisiana
+22119,Louisiana
+22121,Louisiana
+22123,Louisiana
+22125,Louisiana
+22127,Louisiana
+28045,Mississippi
+28047,Mississippi
+28059,Mississippi
+37009,North Carolina
+37013,North Carolina
+37015,North Carolina
+37017,North Carolina
+37019,North Carolina
+37029,North Carolina
+37031,North Carolina
+37033,North Carolina
+37035,North Carolina
+37037,North Carolina
+37041,North Carolina
+37047,North Carolina
+37049,North Carolina
+37051,North Carolina
+37053,North Carolina
+37055,North Carolina
+37057,North Carolina
+37059,North Carolina
+37061,North Carolina
+37065,North Carolina
+37067,North Carolina
+37069,North Carolina
+37071,North Carolina
+37073,North Carolina
+37079,North Carolina
+37081,North Carolina
+37089,North Carolina
+37091,North Carolina
+37095,North Carolina
+37097,North Carolina
+37101,North Carolina
+37103,North Carolina
+37105,North Carolina
+37107,North Carolina
+37109,North Carolina
+37117,North Carolina
+37119,North Carolina
+37127,North Carolina
+37129,North Carolina
+37133,North Carolina
+37137,North Carolina
+37139,North Carolina
+37141,North Carolina
+37143,North Carolina
+37145,North Carolina
+37147,North Carolina
+37151,North Carolina
+37155,North Carolina
+37157,North Carolina
+37159,North Carolina
+37163,North Carolina
+37169,North Carolina
+37177,North Carolina
+37183,North Carolina
+37187,North Carolina
+37191,North Carolina
+37195,North Carolina
+45013,South Carolina
+45015,South Carolina
+45017,South Carolina
+45019,South Carolina
+45043,South Carolina
+45045,South Carolina
+45051,South Carolina
+45065,South Carolina
+45075,South Carolina
+48005,Texas
+48007,Texas
+48021,Texas
+48029,Texas
+48039,Texas
+48041,Texas
+48057,Texas
+48061,Texas
+48067,Texas
+48071,Texas
+48085,Texas
+48091,Texas
+48113,Texas
+48167,Texas
+48201,Texas
+48215,Texas
+48239,Texas
+48241,Texas
+48245,Texas
+48249,Texas
+48273,Texas
+48277,Texas
+48291,Texas
+48303,Texas
+48321,Texas
+48339,Texas
+48347,Texas
+48355,Texas
+48361,Texas
+48373,Texas
+48391,Texas
+48403,Texas
+48407,Texas
+48409,Texas
+48419,Texas
+48427,Texas
+48453,Texas
+48455,Texas
+48459,Texas
+48469,Texas
+48471,Texas
+48481,Texas
+48489,Texas
+48493,Texas
