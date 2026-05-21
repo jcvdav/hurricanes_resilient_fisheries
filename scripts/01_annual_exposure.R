@@ -58,10 +58,9 @@ annual_exposure <- forecast_data |>
   # over consecutive years (not just over years that appear in the data).
   complete(year = full_seq(year, 1), fill = list(county_days_exposed = 0)) |>
   arrange(year) |>
-  mutate(rolling_avg_3y = zoo::rollmean(county_days_exposed,
-                                        k = 3,
-                                        fill = NA,
-                                        align = "right"))
+  mutate(rolling_avg_3y = (county_days_exposed +
+                           lag(county_days_exposed) +
+                           lag(county_days_exposed, 2)) / 3)
 
 # VISUALIZE ####################################################################
 
