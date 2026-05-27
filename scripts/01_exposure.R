@@ -18,21 +18,40 @@ pacman::p_load(
   lubridate,
   rnaturalearth,
   sf,
-  cowplot
+  tigris,
+  cowplot,
+  mregions2
 )
 
 options(dplyr.summarise.inform = FALSE)
 
 ## Load data -------------------------------------------------------------------
+# Get Gulf shapefile
+# gaz_search("Gulf of Mexico") #mrgid = 4288
+GoM <- gaz_geometry(x = 4288) |> 
+  st_union() |> 
+  st_buffer(50000)
+
 ### Gulf states (restrict the exposure tally to Gulf-of-Mexico counties)
 gulf_states <- c("Texas", "Louisiana", "Mississippi", "Alabama", "Florida")
 
 ### Sample counties (analysis panel FIPS, filtered to Gulf states)
 sample_counties <- read_csv(
   here("data", "processed", "sample_counties.csv"),
-  col_types = cols(fips = col_character())
-) |>
+  col_types = cols(fips = col_character())) |>
   filter(state %in% gulf_states)
+
+#Using FIPS code '48' for state 'Texas'
+# Using FIPS code '22' for state 'Louisiana'
+# Using FIPS code '28' for state 'Mississippi'
+# Using FIPS code '01' for state 'Alabama'
+# Using FIPS code '12' for state 'Florida'
+counties <- counties(state = c(48, 22, 28, 01, 12)) |> 
+  mutate(fips = paste0(STATEFP, COUNTYFP)) |> 
+  select(fips) |> 
+  semi_join(sample_counties, by = "fips") |>
+  st_transform(crs = "EPSG:4326") |> 
+  st_filter(GoM)
 
 ### Hurricane forecast data (per hurricane / county / day sustained winds)
 forecast_data <- read_csv(
@@ -46,7 +65,7 @@ forecast_data <- read_csv(
 annual_exposure <- forecast_data |>
   mutate(date = as.Date(date),
          fips = sprintf("%05d", county)) |>
-  semi_join(sample_counties, by = "fips") |>
+  semi_join(counties, by = "fips") |>
   group_by(hurricane, fips, date) |>
   summarise(wind_obs = mean(vmax_sust_obs, na.rm = TRUE)) |>
   group_by(fips, date) |>
@@ -123,10 +142,10 @@ gulf_stats <- tribble(
 ) |> 
   mutate_at(.vars = vars(3:4), \(x) round(x/1e3)) |> 
   mutate(text = paste(state, "\n",
-                      "Jobs: ", format(employment, big.mark = ",", scientific = FALSE), "\n",
-                      "Revenue: ", format(income, big.mark = ",", scientific = FALSE), "\n",
                       "Value: ", format(value_added, big.mark = ",", scientific = FALSE), "\n",
-                      "Production: ", format(production, big.mark = ",", scientific = FALSE), "\n"))
+                      "Jobs: ", format(employment, big.mark = ",", scientific = FALSE), "\n",
+                      "Production: ", format(production, big.mark = ",", scientific = FALSE), "\n",
+                      "Revenue: ", format(income, big.mark = ",", scientific = FALSE), "\n"))
 
 # Calculate exposure by state
 exposure_by_state <- forecast_data |>
