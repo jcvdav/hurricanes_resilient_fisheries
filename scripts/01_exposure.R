@@ -132,6 +132,11 @@ gulf_states <- ne_states(country = c("United States of America")) |>
   select(state = name)
 
 # Build stats table for the Gulf. These come from the spreadhseet put together by Amelia.
+# Sources are:
+#   - Employment, Income, and Value added from: https://media.fisheries.noaa.gov/2024-07/FEUS-2022-v04-0.pdf Page 9, Table 3.
+#   - Production comes from: https://www.fisheries.noaa.gov/foss/, using commercial, year = 2022, region type = NMFS regions, all species and reporting results by year/state.
+
+
 gulf_stats <- tribble(
   ~ "state", ~"employment", ~"income", ~"value_added", ~"production",
   "Alabama",	6971,	139904,	195934,	13872,
@@ -168,13 +173,13 @@ p2 <- ggplot() +
           color = "black",
           linewidth = 0.5) +
   geom_label(data = gulf_states_affected, 
-             x = c(-107.5, -94.5, -93, -85, -87),
+             x = c(-107.5, -94.5, -94.5, -85, -87),
              y = c(34, 27, 35, 34, 27),
              mapping = aes(label = text),
              hjust = "left",
              color = "black",
              fill = "white",
-             alpha = 0.5,
+             alpha = 0.75,
              label.r = unit(0.1, "lines"),
              size = 4,
              family = "serif") +
