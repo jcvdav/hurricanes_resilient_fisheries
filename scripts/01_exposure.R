@@ -4,8 +4,7 @@
 #
 # ポブラシオナル・クマ
 #
-# Builds Figure 1: annual county-days exposed to sustained winds >= 17.5 m/s
-# during hurricane season (Jun-Nov), for the analysis sample of coastal.
+# Builds Figure 1
 #
 ################################################################################
 
@@ -20,12 +19,20 @@ pacman::p_load(
   sf,
   tigris,
   cowplot,
-  mregions2
+  mregions2,
+  janitor,
+  modelsummary
 )
 
 options(dplyr.summarise.inform = FALSE)
 
 ## Load data -------------------------------------------------------------------
+# Fisheries production statistics from NOAA
+noaa_stats <- read_csv(here("data/raw/noaa_stats/gulf_fisheries_stats.csv")) |> 
+  clean_names() |> 
+  select(state:units) |> 
+  drop_na(state)
+
 # Get Gulf shapefile
 # gaz_search("Gulf of Mexico") #mrgid = 4288
 GoM <- gaz_geometry(x = 4288) |> 
@@ -90,7 +97,8 @@ annual_exposure <- forecast_data |>
 p1 <- ggplot(annual_exposure,
              mapping = aes(x = year, y = county_days_exposed)) +
   geom_col(mapping = aes(fill = "County-days"),
-           width = 0.75) +
+           color = "black",
+           linewidth = 0.5) +
   geom_line(mapping = aes(y = rolling_avg_3y,
                           color = "3-yr Running average"),
             linewidth = 1.15,
@@ -112,16 +120,11 @@ p1 <- ggplot(annual_exposure,
                     aesthetics = c("color", "fill"),
                     name = NULL) +
   guides(color = "none") +
-  theme_minimal(base_size = 18) +
+  theme_minimal(base_size = 12) +
   theme(
     panel.grid.minor = element_blank(),
-    axis.text.x = element_text(size = 15),
-    axis.text.y = element_text(size = 16),
-    axis.title = element_text(size = 18),
     legend.position = "inside",
     legend.position.inside = c(0.15, 0.95),
-    # legend.direction = "horizontal",
-    legend.text = element_text(size = 16),
     legend.key.size = unit(1.1, "lines")
   )
 
@@ -130,27 +133,6 @@ p1 <- ggplot(annual_exposure,
 gulf_states <- ne_states(country = c("United States of America")) |> 
   filter(name %in% c("Florida", "Alabama", "Mississippi", "Louisiana", "Texas")) |> 
   select(state = name)
-
-# Build stats table for the Gulf. These come from the spreadhseet put together by Amelia.
-# Sources are:
-#   - Employment, Income, and Value added from: https://media.fisheries.noaa.gov/2024-07/FEUS-2022-v04-0.pdf Page 9, Table 3.
-#   - Production comes from: https://www.fisheries.noaa.gov/foss/, using commercial, year = 2022, region type = NMFS regions, all species and reporting results by year/state.
-
-
-gulf_stats <- tribble(
-  ~ "state", ~"employment", ~"income", ~"value_added", ~"production",
-  "Alabama",	6971,	139904,	195934,	13872,
-  "Louisiana",	32514,	623462,	837860,	413855,
-  "Mississippi",	6954,	126921,	165074,	141018,
-  "Texas",	41171,	1259222,	2048829,	27889,
-  "Florida",	121710,	4578530,	8206789,	29448
-) |> 
-  mutate_at(.vars = vars(3:4), \(x) round(x/1e3)) |> 
-  mutate(text = paste(state, "\n",
-                      "Value: ", format(value_added, big.mark = ",", scientific = FALSE), "\n",
-                      "Jobs: ", format(employment, big.mark = ",", scientific = FALSE), "\n",
-                      "Production: ", format(production, big.mark = ",", scientific = FALSE), "\n",
-                      "Revenue: ", format(income, big.mark = ",", scientific = FALSE), "\n"))
 
 # Calculate exposure by state
 exposure_by_state <- forecast_data |>
@@ -163,46 +145,86 @@ exposure_by_state <- forecast_data |>
   count(state)
 
 gulf_states_affected <- left_join(gulf_states, exposure_by_state, by = join_by(state)) |> 
-  left_join(gulf_stats, by = join_by(state)) |> 
   mutate(state = fct_relevel(state, "Texas", "Louisiana", "Mississippi", "Alabama", "Florida")) |> 
   arrange(state)
 
+sf_use_s2(F)
+
 p2 <- ggplot() + 
+  geom_sf(data = ne_countries(country = c("United States of America", "Mexico"), scale = "large") |> 
+            st_crop(st_buffer(gulf_states_affected, 0.5)),
+          fill = "gray75",
+          color = "gray75") +
   geom_sf(data = gulf_states_affected,
           mapping = aes(fill = n),
           color = "black",
           linewidth = 0.5) +
-  geom_label(data = gulf_states_affected, 
-             x = c(-107.5, -94.5, -94.5, -85, -87),
-             y = c(34, 27, 35, 34, 27),
-             mapping = aes(label = text),
-             hjust = "left",
-             color = "black",
-             fill = "white",
-             alpha = 0.75,
-             label.r = unit(0.1, "lines"),
-             size = 4,
-             family = "serif") +
-  theme_minimal(base_size = 15) +
+  theme_minimal(base_size = 12) +
   theme(
     axis.text = element_blank(),
     panel.grid.minor = element_blank(),
     legend.position = "inside",
-    legend.position.inside = c(0.15, 0.1),
+    legend.position.inside = c(0.85, 0.9),
     legend.direction = "horizontal") +
-  scale_fill_gradient(low = "#E8F4F8",
-                      high = "#8B3A3A",
-                      name = "Number of\nhurricanes") +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_gradient(low = "#FDF1E6",
+                      high = "#D55E00",
+                      name = "Number of\nhurricanes",
+                      guide = guide_colorbar(ticks.colour = "black",
+                                             frame.colour = "black")) +
   labs(x = NULL,
        y = NULL)
 
 p <- plot_grid(p1, p2, ncol = 1, labels = c("A)", "B)"))
+
+## Table of Fisheries statistics
+data <- noaa_stats |>
+  mutate(value = if_else(str_detect(units, "Thousand"), round(value / 1000), value),
+         metric = fct_relevel(metric,
+                              "Employment",
+                              "Production",
+                              "Income",
+                              "Sales",
+                              "Value Added"
+                              ),
+         state = fct_reorder(state, value, min, .na_rm = T, .desc = T),
+         sector = ifelse(str_detect(sector, "Commercial"), "Com.", "Rec.")) |>
+  select(State = state, sector, metric, value)
+
+# Keep `value` numeric — turning it into a character makes datasummary treat it
+# as another categorical column, exploding the table to hundreds of columns.
+# Format with commas via `fmt` instead.
+tex_path <- here("results/tab/fisheries_stats.tex")
+
+datasummary(State ~ unique * value * metric * sector,
+            data = data,
+            fmt = function(x) format(x, big.mark = ",", scientific = FALSE, trim = TRUE),
+            output = tex_path,
+            title = "\\label{tab:fishery_stats}Commercial and Recreational fisheries in Gulf States are an important source of livelihoods and food.",
+            notes = paste(
+              "Data come from \\citep{noaa_feus_2022}.",
+              "Each economic metric is split by fishing sector: Com. = commercial fisheries; Rec. = recreational fisheries.",
+              "Units: Employment is full- and part-time jobs; Production is in metric tons; Income, Sales and Value Added are in millions of U.S. dollars (M USD).",
+              "Empty cells indicate that the metric is not separately reported for that state-sector combination."
+            ),
+            escape = FALSE)
+
+# tinytable wraps numeric-looking cells in \num{...} for siunitx, which then
+# parses the embedded comma as a decimal separator and errors out. Drop the
+# wrappers so the comma-formatted strings render verbatim. Also wrap the
+# whole table in `\begingroup\small ... \endgroup` to fit on a portrait page.
+tex <- readLines(tex_path) |>
+  str_replace_all("\\\\num\\{([^}]*)\\}", "\\1")
+writeLines(c("\\begingroup\\footnotesize", tex, "\\endgroup"), tex_path)
 
 # EXPORT #######################################################################
 
 ## Save figure -----------------------------------------------------------------
 ggsave(plot = p,
        filename = here("results/img/annual_and_total_exposure.png"),
-       width = 12,
-       height = 12,bg = "white",
+       width = 9,
+       height = 9,
+       bg = "white",
        dpi = 300)
+
