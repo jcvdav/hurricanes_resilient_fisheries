@@ -159,6 +159,11 @@ p2 <- ggplot() +
           mapping = aes(fill = n),
           color = "black",
           linewidth = 0.5) +
+  geom_sf_text(data = gulf_states_affected,
+               mapping = aes(label = n),
+               nudge_y = 0.5,
+               nudge_x = -0.5,
+               size = 6) +
   theme_minimal(base_size = 12) +
   theme(
     axis.text = element_blank(),
