@@ -1,83 +1,73 @@
 # Hurricanes & Resilient Fisheries
 
-Code and data for **"Competitiveness in American Seafood Requires Promoting Fisheries to be Resilient"**.
+Code and data for **"Competitiveness in American Seafood Requires Promoting Climate-Resilient Fisheries"**.
 
-This repository produces two figures characterizing hurricane exposure across coastal U.S. counties and across Gulf states in particular, and their relationship with U.S. commercial fishing activity.
-
----
-
-## Figures
-
-### Figure 1 — Annual hurricane-season county-days exposed (`results/img/annual_hurricane_season_county_days_exposed.png`)
-
-Bars show the annual sum of county-days exposed to storm-force winds (sustained winds >= 17.5 m/s) during hurricane season (Jun-Nov), restricted to coastal counties in the five Gulf states (Texas, Louisiana, Mississippi, Alabama, Florida) — the same geographic universe as Figure 2. The line is a 3-year running average computed over consecutive calendar years (zero-filled for hurricane-free years).
-
-**Data sources:**
-- County-day sustained-wind series: NOAA HURDAT-based forecast reconstructions (`data/raw/hurricanes/2024_forecast_data.csv`)
-- Sample counties: `data/processed/sample_counties.csv` — 276 FIPS from the analysis panel of Molina et al. (2024) spanning Gulf and South Atlantic states; the script filters to the 172 Gulf-state counties
-
-### Figure 2 — Gulf Coast hurricane exposure map (`results/img/map.png`)
-
-A choropleth map of the five Gulf Coast states (Texas, Louisiana, Mississippi, Alabama, Florida) shaded by the number of named hurricanes that made landfall or passed through each state since 2000. Each state label includes key fisheries statistics:
-
-- Jobs (employment)
-- Revenue (income, $K)
-- Value added ($K)
-- Seafood production ($K)
-
-**Data sources:**
-- Hurricane tracks: [NOAA IBTrACS v04r01](https://www.ncei.noaa.gov/products/international-best-track-archive) (North Atlantic basin)
-- Fisheries statistics: State-level estimates compiled from NOAA sources
+A single R script (`scripts/01_exposure.R`) produces one combined two-panel figure characterizing hurricane exposure across Gulf-state coastal counties, plus a LaTeX table of Gulf-state fisheries statistics.
 
 ---
 
-## Repository Structure
+## Outputs
+
+### Figure — `results/img/annual_and_total_exposure.png`
+
+A two-panel composite (panels labeled A and B).
+
+**Panel A — Annual hurricane-season county-days exposed.** Bars show the annual sum of county-days exposed to storm-force winds (sustained winds ≥ 17.5 m/s) during hurricane season (Jun–Nov), restricted to coastal counties in the five Gulf states (Texas, Louisiana, Mississippi, Alabama, Florida). The overlaid line + points is a 3-year running average computed over consecutive calendar years (zero-filled for years with no qualifying exposure so the window slides over consecutive years).
+
+**Panel B — Gulf Coast hurricane exposure map.** A choropleth of the five Gulf states shaded by the number of distinct (year, hurricane) pairs that produced storm-force sustained winds in any sampled county of that state.
+
+### Table — `results/tab/fisheries_stats.tex`
+
+A LaTeX table of Gulf-state commercial and recreational fisheries statistics (Employment, Production, Income, Sales, Value Added), split by sector. Generated with `modelsummary::datasummary` and post-processed to (1) strip `siunitx` `\num{...}` wrappers so comma-formatted numbers render verbatim, and (2) wrap the table in `\begingroup\footnotesize ... \endgroup` to fit on a portrait page.
+
+---
+
+## Data sources
+
+- **County-day sustained-wind series:** `data/raw/hurricanes/2024_forecast_data.csv` — per hurricane / county / day sustained-wind reconstructions.
+- **Sample counties (analysis panel FIPS):** `data/processed/sample_counties.csv` — filtered to the five Gulf states; further intersected with the Gulf of Mexico geometry (MarineRegions `mrgid = 4288`, buffered 50 km) via `mregions2` and `tigris` county shapes.
+- **Fisheries statistics:** `data/raw/noaa_stats/gulf_fisheries_stats.csv` — Gulf-state estimates compiled from NOAA's Fisheries Economics of the U.S. report.
+
+---
+
+## Repository structure
 
 ```
 .
-├── Makefile                          # Build figures with `make`
+├── Makefile                              # `make` builds the figure
 ├── scripts/
-│   ├── 01_annual_exposure.R          # Figure 1 — annual county-days exposed
-│   └── 02_map.R                      # Figure 2 — Gulf Coast hurricane exposure map
+│   └── 01_exposure.R                     # Produces the figure and the table
 ├── data/
-│   ├── raw/hurricanes/
-│   │   └── 2024_forecast_data.csv    # County-day sustained-wind series
+│   ├── raw/
+│   │   ├── hurricanes/2024_forecast_data.csv
+│   │   └── noaa_stats/gulf_fisheries_stats.csv
 │   └── processed/
-│       └── sample_counties.csv       # Analysis-panel FIPS
+│       └── sample_counties.csv
 └── results/
-    └── img/                          # Output figures (generated by Makefile)
-        ├── annual_hurricane_season_county_days_exposed.png
-        └── map.png
+    ├── img/annual_and_total_exposure.png
+    └── tab/fisheries_stats.tex
 ```
 
 ---
 
 ## Usage
 
-Build both figures:
-
 ```bash
-make
+make           # build the figure (and table)
+make clean     # remove generated figure(s)
 ```
 
-Clean outputs:
+Or run the script directly:
 
 ```bash
-make clean
-```
-
-Or run a single script directly:
-
-```bash
-Rscript scripts/01_annual_exposure.R
-Rscript scripts/02_map.R
+Rscript scripts/01_exposure.R
 ```
 
 ---
 
 ## Dependencies
 
-R packages: `tidyverse`, `lubridate`, `sf`, `rnaturalearth`, `janitor`, `here`, `pacman`
+R packages (loaded via `pacman::p_load`): `here`, `tidyverse`, `lubridate`, `rnaturalearth`, `sf`, `tigris`, `cowplot`, `mregions2`, `janitor`, `modelsummary`.
 
 ---
 
