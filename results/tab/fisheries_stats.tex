@@ -1,48 +1,21 @@
 \begingroup\footnotesize
 \begin{table}
 \centering
-\begin{talltblr}[         %% tabularray outer open
-caption={\label{tab:fishery_stats}Commercial and Recreational fisheries in Gulf States are an important source of livelihoods and food.},
-note{}={Data come from \citep{noaa_feus_2022}. Each economic metric is split by fishing sector: Com. = commercial fisheries; Rec. = recreational fisheries. Units: Employment is full- and part-time jobs; Production is in metric tons; Income, Sales and Value Added are in millions of U.S. dollars (M USD). Empty cells indicate that the metric is not separately reported for that state-sector combination.},
-]                     %% tabularray outer close
-{                     %% tabularray inner open
-colspec={Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]},
-hline{2}={11}{solid, black, 0.03em},
-hline{2}={2,4,6,8,10}{solid, black, 0.03em, l=-0.5},
-hline{2}={3,5,7,9}{solid, black, 0.03em, r=-0.5},
-hline{3}={1-11}{solid, black, 0.05em},
-hline{1}={1-11}{solid, black, 0.08em},
-hline{8}={1-11}{solid, black, 0.08em},
-cell{1}{1}={}{halign=c},
-cell{1}{10}={c=2}{halign=c},
-cell{1}{11}={}{halign=c},
-cell{1}{2}={c=2}{halign=c},
-cell{1}{3}={}{halign=c},
-cell{1}{4}={c=2}{halign=c},
-cell{1}{5}={}{halign=c},
-cell{1}{6}={c=2}{halign=c},
-cell{1}{7}={}{halign=c},
-cell{1}{8}={c=2}{halign=c},
-cell{1}{9}={}{halign=c},
-cell{2-7}{1}={}{halign=l},
-cell{2-7}{10}={}{halign=r},
-cell{2-7}{11}={}{halign=r},
-cell{2-7}{2}={}{halign=r},
-cell{2-7}{3}={}{halign=r},
-cell{2-7}{4}={}{halign=r},
-cell{2-7}{5}={}{halign=r},
-cell{2-7}{6}={}{halign=r},
-cell{2-7}{7}={}{halign=r},
-cell{2-7}{8}={}{halign=r},
-cell{2-7}{9}={}{halign=r},
-}                     %% tabularray inner close
-& Employment &  & Production &  & Income &  & Sales &  & Value Added &  \\
-State & Com. & Rec. & Com. & Rec. & Com. & Rec. & Com. & Rec. & Com. & Rec. \\
-Florida & 121,710 & 28,546 & 49,902 & 60,556 & 4,579 & 1,350 & 24,596 & 3,936 & 8,207 & 2,401 \\
-Texas & 41,171 & 5,605 & 27,889 &  & 1,259 & 261 & 5,584 & 793 & 2,049 & 450 \\
-Louisiana & 32,514 & 4,552 & 413,855 &  & 623 & 171 & 1,638 & 590 & 838 & 294 \\
-Alabama & 6,971 & 5,506 & 13,871 & 8,685 & 140 & 217 & 443 & 745 & 196 & 399 \\
-Mississippi & 6,954 & 324 & 141,018 & 4,917 & 127 & 13 & 329 & 72 & 165 & 30 \\
-\end{talltblr}
+\caption{\label{tab:fishery_stats}Commercial and Recreational fisheries in Gulf States are an important source of livelihoods and food.}
+\centering
+\begin{tabular}[t]{lrrrrrrrrrr}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{2}{c}{Employment} & \multicolumn{2}{c}{Production} & \multicolumn{2}{c}{Income} & \multicolumn{2}{c}{Sales} & \multicolumn{2}{c}{Value Added} \\
+\cmidrule(l{3pt}r{3pt}){2-3} \cmidrule(l{3pt}r{3pt}){4-5} \cmidrule(l{3pt}r{3pt}){6-7} \cmidrule(l{3pt}r{3pt}){8-9} \cmidrule(l{3pt}r{3pt}){10-11}
+State & Com. & Rec. & Com. & Rec. & Com. & Rec. & Com. & Rec. & Com. & Rec.\\
+\midrule
+Florida & 121,710 & 28,546 & 49,902 & 60,556 & 4,579 & 1,350 & 24,596 & 3,936 & 8,207 & 2,401\\
+Texas & 41,171 & 5,605 & 27,889 &  & 1,259 & 261 & 5,584 & 793 & 2,049 & 450\\
+Louisiana & 32,514 & 4,552 & 413,855 &  & 623 & 171 & 1,638 & 590 & 838 & 294\\
+Alabama & 6,971 & 5,506 & 13,872 & 8,685 & 140 & 217 & 443 & 745 & 196 & 399\\
+Mississippi & 6,954 & 324 & 141,018 & 4,917 & 127 & 13 & 329 & 72 & 165 & 30\\
+\bottomrule
+\multicolumn{11}{l}{\rule{0pt}{1em}Data come from citep{noaa_feus_2022}. Each economic metric is split by fishing sector: Com. = commercial fisheries; Rec. = recreational fisheries. Units: Employment is full- and part-time jobs; Production is in metric tons; Income, Sales and Value Added are in millions of U.S. dollars (M USD). Empty cells indicate that the metric is not separately reported for that state-sector combination.}\\
+\end{tabular}
 \end{table}
 \endgroup
